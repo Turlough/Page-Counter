@@ -54,6 +54,7 @@ def count_tif(tif):
 	count = 0
 	with Image.open(tif) as image:
 		count = image.n_frames
+	print(f'{count}\t {os.path.basename(tif)}')
 	return count
 
 
