@@ -2,8 +2,9 @@ from PyPDF2 import PdfFileReader as Reader
 from pathlib import Path
 import os
 from PIL import Image
+from timer import Timer
 
-fixpath = lambda path: str(Path(path.strip()))
+fixpath = lambda path: str(Path(path.replace('"','').strip()))
 join = lambda dir, file: fixpath(os.path.join(dir, file))
 change_ext = lambda file, new_ext: file[0:-4] + new_ext
 
@@ -18,6 +19,7 @@ def select_folder():
 	if len(f) == 0:
 		input("No folder selected. Press enter again to quit")
 		exit()
+	print(f)
 	return fixpath(f)
 
 
@@ -45,7 +47,6 @@ def count_pdf(pdf):
 	with open(pdf,"rb") as f:
 		p = Reader(f)
 		result = p.getNumPages()
-	print(f'{result}\t {os.path.basename(pdf)}')
 	return result
 
 
@@ -54,24 +55,29 @@ def count_tif(tif):
 	count = 0
 	with Image.open(tif) as image:
 		count = image.n_frames
-	print(f'{count}\t {os.path.basename(tif)}')
 	return count
 
 
-def count_pdf_list(files):
+def count_pdf_list(files, timer):
 	pages = 0
+	docs = 0
 	for f in files:
 		pages += count_pdf(f)
+		docs += 1
+		timer.get_progress(docs)
 
 	return len(files), pages
 
 
-def count_tif_list(files):
+def count_tif_list(files, timer):
 	pages = 0
+	docs = 0
 	for f in files:
 		pages += count_tif(f)
+		docs += 1
+		timer.get_progress(docs)
 
-	return len(files), pages
+	return docs, pages
 
 def main():
 
@@ -80,15 +86,17 @@ def main():
 		folder = select_folder()
 		pdfs, tifs = get_files(folder)
 		print(f'Found {len(pdfs)} PDF documents, {len(tifs)} TIF documents. Counting pages...')
-		
+		timer = Timer(len(pdfs) + len(tifs))
 		print()
 		print(f'\nFolder: {folder}')
-		# PDF count
-		docs, pages = count_pdf_list(pdfs)
-		print(f'\tPDF: {docs} documents, {pages} pages')
-		# TIF count
-		docs, pages = count_tif_list(tifs)
-		print(f'\tTIF: {docs} documents, {pages} pages')
+		print('\nCounting PDFs')
+		p_docs, p_pages = count_pdf_list(pdfs, timer)
+		print('\nCounting TIFFs')
+		t_docs, t_pages = count_tif_list(tifs, timer)
+		print()
+		print(f'\n\n{folder}: Totals:')
+		print(f'\tPDF: {p_docs} documents, {p_pages} pages')
+		print(f'\tTIF: {t_docs} documents, {t_pages} pages')
 
 
 if __name__ == '__main__':

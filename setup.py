@@ -12,7 +12,8 @@ distutils_path = os.path.join(os.path.dirname(opcode.__file__), 'distutils')
 build_exe_options = {
 	"packages": ["PIL.Image", "PyPDF2"],
 	"include_files" : [(distutils_path, "distutils")],
-	"excludes" : ['distutils']
+	"excludes" : ['distutils'],
+	"build_exe" : 'build_2'
 	}
 
 setup(name = "Page Counter" ,
