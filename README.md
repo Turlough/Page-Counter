@@ -1,7 +1,7 @@
 # Page Counter
 Counts the number of documents and pages in a folder.
 
-The folder may contain TIFFs and/or PDFs, both totals will be shown.
+The folder may contain TIFFs, JPGs and/or PDFs, all totals will be shown.
 
 To use:
 1. Launch the application. 

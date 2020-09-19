@@ -1,6 +1,7 @@
 from PyPDF2 import PdfFileReader as Reader
 from pathlib import Path
 import os
+import sys
 from PIL import Image
 from tqdm import tqdm
 
@@ -8,8 +9,6 @@ from PyPDF2 import PdfFileReader
 
 fixpath = lambda path: str(Path(path.replace('"', '').strip()))
 join = lambda dir, file: fixpath(os.path.join(dir, file))
-
-last_message_length = 0
 
 
 def select_folder():
@@ -24,20 +23,19 @@ def select_folder():
     return fixpath(f)
 
 
-def get_files(folder):
+def get_files(parent_folder):
+
     is_pdf = lambda f: f.lower().endswith('.pdf')
     is_tif = lambda f: f.lower().endswith('.tif')
     is_jpg = lambda f: f.lower().endswith('.jpg')
 
     full_list = []
-    for dirname, dirnames, filenames in os.walk(folder):
-        global last_message_length
-        print('' * last_message_length + '\r', end='')
-        last_message_length = len(dirname)
-        print(dirname, end='\r')
+    for folder, _, filenames in os.walk(parent_folder):
+        sys.stdout.write("\033[K")
+        print(folder, end='\r')
 
-        filepaths = list(map(lambda f: join(dirname, f), filenames))
-        full_list.extend(filepaths)
+        files = list(map(lambda f: join(folder, f), filenames))
+        full_list.extend(files)
 
     pdfs = [f for f in full_list if is_pdf(f)]
     tifs = [f for f in full_list if is_tif(f)]
@@ -99,7 +97,7 @@ def main():
 
         jpgs, pdfs, tifs = get_files(folder)
         print(
-            f'Found {len(jpgs)} JPG documents, {len(pdfs)} PDF documents, {len(tifs)} TIF documents. Counting pages...')
+            f'\nFound {len(jpgs)} JPG documents, {len(pdfs)} PDF documents, {len(tifs)} TIF documents. Counting pages...')
         timer = len(jpgs) + len(pdfs) + len(tifs)
 
         if len(jpgs) > 0:
