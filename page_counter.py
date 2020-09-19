@@ -14,13 +14,13 @@ last_message_length = 0
 
 def select_folder():
     """
-	You can drag and drop a folder from Windows Explorer to the shell
-	:return: a path to a folder
-	"""
-    f = input("Type or drop drop folder here\n -> ")
+    You can drag and drop a folder from Windows Explorer to the shell
+    :return: whatever the user inputs, hopefully a directory
+    """
+
+    f = input("Type or drop drop folder here\n\t -> ")
     if len(f) == 0:
         return ''
-    print(f)
     return fixpath(f)
 
 
@@ -34,7 +34,7 @@ def get_files(folder):
         global last_message_length
         print('' * last_message_length + '\r', end='')
         last_message_length = len(dirname)
-        print(dirname)
+        print(dirname, end='\r')
 
         filepaths = list(map(lambda f: join(dirname, f), filenames))
         full_list.extend(filepaths)
@@ -48,10 +48,10 @@ def get_files(folder):
 
 def count_pdf(pdf):
     """
-	Counts the pages in a PDF.
-	:param pdf: The pdf.
-	:return: The number of pages.
-	"""
+    Counts the pages in a PDF.
+    :param pdf: The pdf.
+    :return: The number of pages.
+    """
 
     with open(pdf, 'rb') as f:
         reader = PdfFileReader(f, strict=False)
@@ -60,17 +60,16 @@ def count_pdf(pdf):
 
 def count_tif(tif):
     """
-	Counts the number of pages in a TIF.
-	:param tif: The TIFF file.
-	:return: The number of pages.
-	"""
-    count = 0
+    Counts the number of pages in a TIF.
+    :param tif: The TIFF file.
+    :return: The number of pages.
+    """
+
     with Image.open(tif) as image:
-        count = image.n_frames
-    return count
+        return image.n_frames
 
 
-def count_pdf_list(files, timer):
+def count_pdf_list(files):
     pages = 0
     docs = 0
     for f in tqdm(files):
@@ -80,7 +79,7 @@ def count_pdf_list(files, timer):
     return len(files), pages
 
 
-def count_tif_list(files, timer):
+def count_tif_list(files):
     pages = 0
     docs = 0
     for f in tqdm(files):
@@ -91,29 +90,33 @@ def count_tif_list(files, timer):
 
 
 def main():
-    while (folder := select_folder()).strip() != '':
-        print('_______________')
-        jpgs, pdfs, tifs = get_files(folder)
-        print(f'Found {len(jpgs)} JPG documents, {len(pdfs)} PDF documents, {len(tifs)} TIF documents. Counting pages...')
-        timer = len(jpgs) + len(pdfs) + len(tifs)
-        print()
-        print(f'\nFolder: {folder}')
 
-        if(len(jpgs) > 0):
+    while (folder := select_folder()).strip() != '':
+
+        if not os.path.isdir(folder):
+            print('\nThat\'s not a real folder!\n')
+            continue
+
+        jpgs, pdfs, tifs = get_files(folder)
+        print(
+            f'Found {len(jpgs)} JPG documents, {len(pdfs)} PDF documents, {len(tifs)} TIF documents. Counting pages...')
+        timer = len(jpgs) + len(pdfs) + len(tifs)
+
+        if len(jpgs) > 0:
             print('\nCounting JPGs')
             j_docs = len(jpgs)
         else:
             j_docs = 0
 
-        if (len(pdfs) > 0):
+        if len(pdfs) > 0:
             print('\nCounting PDFs')
-            p_docs, p_pages = count_pdf_list(pdfs, timer)
+            p_docs, p_pages = count_pdf_list(pdfs)
         else:
             p_docs, p_pages = 0, 0
 
-        if (len(tifs) > 0):
+        if len(tifs) > 0:
             print('\nCounting TIFFs')
-            t_docs, t_pages = count_tif_list(tifs, timer)
+            t_docs, t_pages = count_tif_list(tifs)
         else:
             t_docs, t_pages = 0, 0
 
@@ -122,6 +125,10 @@ def main():
         print(f'\tJPG: {j_docs} documents, {j_docs} pages')
         print(f'\tPDF: {p_docs} documents, {p_pages} pages')
         print(f'\tTIF: {t_docs} documents, {t_pages} pages')
+        print(f'\n\tTot: \
+{j_docs + p_docs + t_docs} documents, \
+{j_docs + p_pages + t_pages} pages\n')
+        print('---------------------------------------------\n')
 
 
 if __name__ == '__main__':
