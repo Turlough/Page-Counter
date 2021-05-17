@@ -2,6 +2,8 @@ from PyPDF2 import PdfFileReader as Reader
 from pathlib import Path
 import os
 import sys
+import concurrent.futures
+import concurrent
 from PIL import Image
 from tqdm import tqdm
 
@@ -24,7 +26,6 @@ def select_folder():
 
 
 def get_files(parent_folder):
-
     is_pdf = lambda f: f.lower().endswith('.pdf')
     is_tif = lambda f: f.lower().endswith('.tif')
     is_jpg = lambda f: f.lower().endswith('.jpg')
@@ -50,7 +51,6 @@ def count_pdf(pdf):
     :param pdf: The pdf.
     :return: The number of pages.
     """
-
     with open(pdf, 'rb') as f:
         reader = PdfFileReader(f, strict=False)
         return reader.numPages
@@ -62,33 +62,39 @@ def count_tif(tif):
     :param tif: The TIFF file.
     :return: The number of pages.
     """
-
     with Image.open(tif) as image:
         return image.n_frames
 
 
-def count_pdf_list(files):
-    pages = 0
-    docs = 0
-    for f in tqdm(files):
-        pages += count_pdf(f)
-        docs += 1
+def count_list(counter, files):
+    """
+    Counts the number of pages in a file list, using the provided single page counter function
+    :param counter: A function capable of counting the pages in an individual file of that type
+    :param files: A list of files whose pages are to be counted, using the provided counter function
+    :return: both the document count and page count for the folder
+    """
+    try:
+        pages = 0
+        docs = 0
+        with concurrent.futures.ThreadPoolExecutor(8) as executor:
+            futures = []
+            pbar = tqdm(total=len(files))
+            for f in files:
+                future = executor.submit(counter, f)
+                futures.append(future)
 
-    return len(files), pages
+            for f in concurrent.futures.as_completed(futures):
+                pages += f.result()
+                docs += 1
+                pbar.update(1)
 
+            return docs, pages
 
-def count_tif_list(files):
-    pages = 0
-    docs = 0
-    for f in tqdm(files):
-        pages += count_tif(f)
-        docs += 1
-
-    return docs, pages
+    except Exception as ex:
+        raise Exception(f'Error while counting pages\n {str(ex)}')
 
 
 def main():
-
     while (folder := select_folder()).strip() != '':
 
         if not os.path.isdir(folder):
@@ -98,7 +104,6 @@ def main():
         jpgs, pdfs, tifs = get_files(folder)
         print(
             f'\nFound {len(jpgs)} JPG documents, {len(pdfs)} PDF documents, {len(tifs)} TIF documents. Counting pages...')
-        timer = len(jpgs) + len(pdfs) + len(tifs)
 
         if len(jpgs) > 0:
             print('\nCounting JPGs')
@@ -108,13 +113,13 @@ def main():
 
         if len(pdfs) > 0:
             print('\nCounting PDFs')
-            p_docs, p_pages = count_pdf_list(pdfs)
+            p_docs, p_pages = count_list(count_pdf, pdfs)
         else:
             p_docs, p_pages = 0, 0
 
         if len(tifs) > 0:
             print('\nCounting TIFFs')
-            t_docs, t_pages = count_tif_list(tifs)
+            t_docs, t_pages = count_list(count_tif, tifs)
         else:
             t_docs, t_pages = 0, 0
 

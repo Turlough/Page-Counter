@@ -1,5 +1,5 @@
 alive-progress>=1.6.1
-cx-Freeze>=6.2
+cx-Freeze>=6.1
 Pillow>=7.2.0
 PyPDF2>=1.26.0
 tqdm
