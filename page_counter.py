@@ -7,7 +7,6 @@ import concurrent
 from PIL import Image
 from tqdm import tqdm
 from exceptions import BrokenImageException
-
 from PyPDF2 import PdfFileReader
 
 fixpath = lambda path: str(Path(path.replace('"', '').strip()))
@@ -19,10 +18,6 @@ def select_folder():
     You can drag and drop a folder from Windows Explorer to the shell
     :return: whatever the user inputs, hopefully a directory
     """
-    args = sys.argv[1:]
-    if len(args) > 0:
-        return fixpath(args[0])
-
     f = input("Type or drop folder here\n\t -> ")
     if len(f) == 0:
         return ''
@@ -101,44 +96,52 @@ def count_list(counter, files):
         return docs, pages
 
 
-def main():
-    while (folder := select_folder()).strip() != '':
+def process_folder(folder):
 
-        if not os.path.isdir(folder):
-            print('\nThat\'s not a real folder!\n')
-            continue
+    if not os.path.isdir(folder):
+        print('\nThat\'s not a real folder!\n')
+        return
 
-        jpgs, pdfs, tifs = get_files(folder)
-        print(
+    jpgs, pdfs, tifs = get_files(folder)
+    print(
             f'\nFound {len(jpgs)} JPG documents, {len(pdfs)} PDF documents, {len(tifs)} TIF documents. Counting pages...')
 
-        if len(jpgs) > 0:
-            print('\nCounting JPGs')
-            j_docs = len(jpgs)
-        else:
-            j_docs = 0
+    if len(jpgs) > 0:
+        print('\nCounting JPGs')
+        j_docs = len(jpgs)
+    else:
+        j_docs = 0
 
-        if len(pdfs) > 0:
-            print('\nCounting PDFs')
-            p_docs, p_pages = count_list(count_pdf, pdfs)
-        else:
-            p_docs, p_pages = 0, 0
+    if len(pdfs) > 0:
+        print('\nCounting PDFs')
+        p_docs, p_pages = count_list(count_pdf, pdfs)
+    else:
+        p_docs, p_pages = 0, 0
 
-        if len(tifs) > 0:
-            print('\nCounting TIFFs')
-            t_docs, t_pages = count_list(count_tif, tifs)
-        else:
-            t_docs, t_pages = 0, 0
+    if len(tifs) > 0:
+        print('\nCounting TIFFs')
+        t_docs, t_pages = count_list(count_tif, tifs)
+    else:
+        t_docs, t_pages = 0, 0
 
-        print()
-        print(f'\n\n{folder}: Totals:')
-        print(f'\tJPG: {j_docs} documents, {j_docs} pages')
-        print(f'\tPDF: {p_docs} documents, {p_pages} pages')
-        print(f'\tTIF: {t_docs} documents, {t_pages} pages')
-        print(f'\n\tTot: \
-{j_docs + p_docs + t_docs} documents, \
-{j_docs + p_pages + t_pages} pages\n')
-        print('---------------------------------------------\n')
+    print()
+    print(f'\n\n{folder}: Totals:')
+    print(f'\tJPG: {j_docs} documents, {j_docs} pages')
+    print(f'\tPDF: {p_docs} documents, {p_pages} pages')
+    print(f'\tTIF: {t_docs} documents, {t_pages} pages')
+    print(f'\n\tTot: \
+    {j_docs + p_docs + t_docs} documents, \
+    {j_docs + p_pages + t_pages} pages\n')
+    print('---------------------------------------------\n')
+
+
+def main():
+    args = sys.argv[1:]
+    if len(args) > 0:
+        process_folder(args[0])
+
+    while (folder := select_folder()).strip() != '':
+        process_folder(folder)
 
 
 if __name__ == '__main__':
