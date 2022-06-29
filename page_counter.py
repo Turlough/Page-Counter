@@ -6,6 +6,7 @@ import concurrent.futures
 import concurrent
 from PIL import Image
 from tqdm import tqdm
+from exceptions import BrokenImageException
 
 from PyPDF2 import PdfFileReader
 
@@ -18,8 +19,11 @@ def select_folder():
     You can drag and drop a folder from Windows Explorer to the shell
     :return: whatever the user inputs, hopefully a directory
     """
+    args = sys.argv[1:]
+    if len(args) > 0:
+        return fixpath(args[0])
 
-    f = input("Type or drop drop folder here\n\t -> ")
+    f = input("Type or drop folder here\n\t -> ")
     if len(f) == 0:
         return ''
     return fixpath(f)
@@ -51,9 +55,12 @@ def count_pdf(pdf):
     :param pdf: The pdf.
     :return: The number of pages.
     """
-    with open(pdf, 'rb') as f:
-        reader = PdfFileReader(f, strict=False)
-        return reader.numPages
+    try:
+        with open(pdf, 'rb') as f:
+            reader = PdfFileReader(f, strict=False)
+            return reader.numPages
+    except Exception as ex:
+        raise BrokenImageException(pdf, ex)
 
 
 def count_tif(tif):
@@ -62,8 +69,11 @@ def count_tif(tif):
     :param tif: The TIFF file.
     :return: The number of pages.
     """
-    with Image.open(tif) as image:
-        return image.n_frames
+    try:
+        with Image.open(tif) as image:
+            return image.n_frames
+    except Exception as ex:
+        raise BrokenImageException(tif, ex)
 
 
 def count_list(counter, files):
@@ -73,25 +83,22 @@ def count_list(counter, files):
     :param files: A list of files whose pages are to be counted, using the provided counter function
     :return: both the document count and page count for the folder
     """
-    try:
-        pages = 0
-        docs = 0
-        with concurrent.futures.ThreadPoolExecutor(8) as executor:
-            futures = []
-            pbar = tqdm(total=len(files))
-            for f in files:
-                future = executor.submit(counter, f)
-                futures.append(future)
 
-            for f in concurrent.futures.as_completed(futures):
-                pages += f.result()
-                docs += 1
-                pbar.update(1)
+    pages = 0
+    docs = 0
+    with concurrent.futures.ThreadPoolExecutor(8) as executor:
+        futures = []
+        pbar = tqdm(total=len(files))
+        for f in files:
+            future = executor.submit(counter, f)
+            futures.append(future)
 
-            return docs, pages
+        for f in concurrent.futures.as_completed(futures):
+            pages += f.result()
+            docs += 1
+            pbar.update(1)
 
-    except Exception as ex:
-        raise Exception(f'Error while counting pages\n {str(ex)}')
+        return docs, pages
 
 
 def main():
