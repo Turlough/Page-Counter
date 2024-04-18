@@ -1,4 +1,4 @@
-from PyPDF2 import PdfFileReader as Reader
+
 from pathlib import Path
 import os
 import sys
@@ -10,36 +10,34 @@ from exceptions import BrokenImageException
 from PyPDF2 import PdfFileReader
 
 fixpath = lambda path: str(Path(path.replace('"', '').strip()))
-join = lambda dir, file: fixpath(os.path.join(dir, file))
 
 
 def select_folder():
     """
-    You can drag and drop a folder from Windows Explorer to the shell
+    You can drag and drop a folders from Windows Explorer to the shell
     :return: whatever the user inputs, hopefully a directory
     """
-    f = input("Type or drop folder here\n\t -> ")
+    f = input("Type or drop a single folder here\n\t -> ")
     if len(f) == 0:
-        return ''
+        exit(0)
     return fixpath(f)
 
 
-def get_files(parent_folder):
+def get_files(parent_folders):
     is_pdf = lambda f: f.lower().endswith('.pdf')
     is_tif = lambda f: f.lower().endswith('.tif')
     is_jpg = lambda f: f.lower().endswith('.jpg')
 
     full_list = []
-    for folder, _, filenames in os.walk(parent_folder):
-        sys.stdout.write("\033[K")
-        print(folder, end='\r')
+    for parent_folder in parent_folders:
+        for folder, _, filenames in os.walk(parent_folder):
 
-        files = list(map(lambda f: join(folder, f), filenames))
-        full_list.extend(files)
+            files = list(map(lambda f: os.path.join(folder, f), filenames))
+            full_list.extend(files)
 
+    jpgs = [f for f in full_list if is_jpg(f)]
     pdfs = [f for f in full_list if is_pdf(f)]
     tifs = [f for f in full_list if is_tif(f)]
-    jpgs = [f for f in full_list if is_jpg(f)]
 
     return jpgs, pdfs, tifs
 
@@ -76,12 +74,12 @@ def count_list(counter, files):
     Counts the number of pages in a file list, using the provided single page counter function
     :param counter: A function capable of counting the pages in an individual file of that type
     :param files: A list of files whose pages are to be counted, using the provided counter function
-    :return: both the document count and page count for the folder
+    :return: both the document count and page count for the folders
     """
 
     pages = 0
     docs = 0
-    with concurrent.futures.ThreadPoolExecutor(8) as executor:
+    with concurrent.futures.ThreadPoolExecutor(40) as executor:
         futures = []
         pbar = tqdm(total=len(files))
         for f in files:
@@ -96,15 +94,10 @@ def count_list(counter, files):
         return docs, pages
 
 
-def process_folder(folder):
+def process_folders(folders):
 
-    if not os.path.isdir(folder):
-        print('\nThat\'s not a real folder!\n')
-        return
-
-    jpgs, pdfs, tifs = get_files(folder)
-    print(
-            f'\nFound {len(jpgs)} JPG documents, {len(pdfs)} PDF documents, {len(tifs)} TIF documents. Counting pages...')
+    jpgs, pdfs, tifs = get_files(folders)
+    print(f'\nFound {len(jpgs)} JPG documents, {len(pdfs)} PDF documents, {len(tifs)} TIF documents. Counting pages...')
 
     if len(jpgs) > 0:
         print('\nCounting JPGs')
@@ -125,7 +118,10 @@ def process_folder(folder):
         t_docs, t_pages = 0, 0
 
     print()
-    print(f'\n\n{folder}: Totals:')
+    print(f'Counted through {len(folders)} folders')
+    for f in folders:
+        print('\t', f)
+    print(f'Totals:')
     print(f'\tJPG: {j_docs} documents, {j_docs} pages')
     print(f'\tPDF: {p_docs} documents, {p_pages} pages')
     print(f'\tTIF: {t_docs} documents, {t_pages} pages')
@@ -138,10 +134,10 @@ def process_folder(folder):
 def main():
     args = sys.argv[1:]
     if len(args) > 0:
-        process_folder(args[0])
+        process_folders(args[0:])
 
-    while (folder := select_folder()).strip() != '':
-        process_folder(folder)
+    while len(folder := select_folder()) > 0:
+        process_folders([folder])
 
 
 if __name__ == '__main__':
