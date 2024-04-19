@@ -10,6 +10,7 @@ from pypdf import PdfReader
 from tifffile import TiffFile
 import warnings
 import logging
+from tabulate import tabulate
 
 
 def select_folder() -> str | None:
@@ -126,14 +127,17 @@ def process_folder(folder: str) -> None:
         t_docs, t_pages = 0, 0
 
     print()
-    print(f'Totals:')
-    print(f'\tJPG: {j_docs} documents, {j_docs} pages')
-    print(f'\tPDF: {p_docs} documents, {p_pages} pages')
-    print(f'\tTIF: {t_docs} documents, {t_pages} pages')
-    print(f'\n\tTot: \
-    {j_docs + p_docs + t_docs} documents, \
-    {j_docs + p_pages + t_pages} pages\n')
-    print('---------------------------------------------\n')
+
+    print(f'Totals for: "{folder}"')
+    headings = ['Type', "Docs", "Pages"]
+    j = ['JPG', j_docs, j_docs]
+    p = ['PDF', p_docs, p_pages]
+    t = ['TIF', t_docs, t_pages]
+    tot = ['Total', j_docs + p_docs + t_docs, j_docs + p_pages + t_pages]
+    # Adding ANSI escape code for bold text to the totals (works in terminal)
+    tot = [f"\033[1m{x}\033[0m" for x in tot]
+    headings = [f"\033[1m{x}\033[0m" for x in headings]
+    print(tabulate([j, p, t, '', tot], headers=headings, tablefmt='simple_outline'))
 
 
 def main():
