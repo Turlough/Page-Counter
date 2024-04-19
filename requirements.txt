@@ -1,5 +1,5 @@
 PyPDF>=4.2.0
-tqdm~=4.66.2
+tqdm>=4.66.2
 tifffile>=2024.4.18
 pillow>=10.3.0
-aiofiles>=23.2.1
+tabulate>=0.9.0
