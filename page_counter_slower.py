@@ -7,7 +7,7 @@ import concurrent
 from tqdm import tqdm
 from exceptions import BrokenImageException, TruncatedTiffException
 from pypdf import PdfReader
-from tifffile import TiffFile
+from PIL import Image
 import warnings
 import logging
 
@@ -64,8 +64,8 @@ def count_tif(tif: str) -> int:
     # Convert specific warnings to exceptions
     warnings.filterwarnings('error')
     try:
-        with TiffFile(tif) as image:
-            return len(image.pages)
+        with Image.open(tif) as image:
+            return image.n_frames
     except UserWarning as uw:
         # Handle the warning as an exception
         raise TruncatedTiffException(tif, str(uw))
