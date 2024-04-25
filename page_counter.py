@@ -34,8 +34,8 @@ def get_files(parent_folder: str) ->(list[str], list[str], list[str]):
         files = list(map(lambda f: os.path.join(folder, f), filenames))
         full_list.extend(files)
 
-    jpgs = [f for f in full_list if f.lower().endswith('.pdf')]
-    pdfs = [f for f in full_list if f.lower().endswith('.jpg')]
+    pdfs = [f for f in full_list if f.lower().endswith('.pdf')]
+    jpgs = [f for f in full_list if f.lower().endswith('.jpg')]
     tifs = [f for f in full_list if f.lower().endswith('.tif')]
 
     return jpgs, pdfs, tifs
