@@ -3,7 +3,6 @@ import os
 import sys
 import concurrent.futures
 import concurrent
-# from PIL import Image
 from tqdm import tqdm
 from exceptions import BrokenImageException, TruncatedTiffException
 from pypdf import PdfReader
@@ -16,19 +15,21 @@ from tabulate import tabulate
 def select_folder() -> str | None:
     """
     You can drag and drop a folders from Windows Explorer to the shell
-    :return: whatever the user inputs, hopefully a directory
+    :return: The selected folder
     """
-    f = input("Type or drop a single folder here\n\t -> ")
-    if not f.strip():
-        return None
-    f = f.replace('"', '').strip()
+    f = input("Type or drop a single folder here\n\t -> ").replace('"', '').strip()
     if not os.path.isdir(f):
         return None
     return f
 
 
 def get_files(parent_folder: str) ->(list[str], list[str], list[str]):
-
+    """
+    Find all JPG, PDF and TIFF files in the folder, and return a separate listing for each.
+    Files can be nested in subfolders; all will be included in result.
+    :param parent_folder: The folder containing the files
+    :return: Three lists: JPGs, TIFFs and PDFs
+    """
     full_list = []
     for folder, _, filenames in os.walk(parent_folder):
         files = list(map(lambda f: os.path.join(folder, f), filenames))
@@ -84,17 +85,12 @@ def count_list(counter, files: list[str]) -> (int, int):
 
     pages = 0
     docs = 0
-    with concurrent.futures.ThreadPoolExecutor(40) as executor:
-        futures = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
         pbar = tqdm(total=len(files))
         try:
-            for f in files:
-                future = executor.submit(counter, f)
-                futures.append(future)
-
-            for f in concurrent.futures.as_completed(futures):
-                pages += f.result()
-                docs += 1
+            futures = {executor.submit(counter, f): f for f in files}
+            for docs, future in enumerate(concurrent.futures.as_completed(futures)):
+                pages += future.result()
                 pbar.update(1)
 
             return docs, pages
@@ -104,7 +100,11 @@ def count_list(counter, files: list[str]) -> (int, int):
 
 
 def process_folder(folder: str) -> None:
-
+    """
+    Count the JPG, PDF and TIFF files and pages in the folder. Page count PDF and multipage TIFFs.
+    Tabulate document and page counts for each of the three types, as well as the totals.
+    :param folder: The folder containing the files
+    """
     jpgs, pdfs, tifs = get_files(folder)
     print(f'\nFound {len(jpgs)} JPG documents, {len(pdfs)} PDF documents, {len(tifs)} TIF documents. Counting pages...')
 
@@ -141,16 +141,14 @@ def process_folder(folder: str) -> None:
 
 
 def main():
+    # Accept drag-and-drop folder as launch args
     args = sys.argv[1:]
     if args:
         process_folder(args[0])
 
-    while True:
-        if not (folder := select_folder()):
-            print("You must select a folder")
-            continue
+    # Offer to repeat on another folder
+    while  folder := select_folder():
         process_folder(folder)
-
 
 if __name__ == '__main__':
     try:
